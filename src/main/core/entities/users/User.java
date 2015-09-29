@@ -1,5 +1,13 @@
 package main.core.entities.users;
 
-public class User {
+import javax.persistence.*;
 
+public class User {
+    //User name
+    protected String name;
+
+    //User ID
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    protected long userID;
 }
