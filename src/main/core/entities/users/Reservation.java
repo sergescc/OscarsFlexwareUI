@@ -4,7 +4,12 @@ import javax.persistence.*;
 import java.util.List;
 
 /**
- * Created by grant on 9/29/15.
+ * A Reservation entry in a database using JPA.
+ * <p>
+ * A Reservation is set of requests for paths that have been scheduled by OSCARS.
+ *
+ * @author Grant Moyer
+ * @since 2015-09-29
  */
 public class Reservation {
     //Reservation ID
@@ -18,4 +23,32 @@ public class Reservation {
 
     //ID of User who made Reservation
     protected long userID;
+
+    //-----------------------------------------------------------
+    // Getters
+    //-----------------------------------------------------------
+
+    /**
+     * Reservation ID getter
+     * @return Reservation ID
+     */
+    public long getResID() {
+        return resID;
+    }
+
+    /**
+     * Request List getter
+     * @return List of Requests in Reservation
+     */
+    public List<Request> getRequests() {
+        return requests;
+    }
+
+    /**
+     * User ID getter
+     * @return ID of User Reservation belongs to
+     */
+    public long getUserID() {
+        return userID;
+    }
 }
