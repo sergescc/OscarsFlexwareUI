@@ -17,10 +17,10 @@ public class Logger {
 
     private static class Entry {
         //Log data
-        private long srcThreadID;
-        private Date time;
-        private int type;
-        private String message;
+        private final long srcThreadID;
+        private final Date time;
+        private final int type;
+        private final String message;
 
         public Entry(long srcThreadID, int type, String message) {
             this.srcThreadID = srcThreadID;
@@ -52,12 +52,17 @@ public class Logger {
     private static boolean running = false;
 
     //entries that need to be logged
-    private static LinkedBlockingQueue<Entry> entries = new LinkedBlockingQueue<>();
+    private static final LinkedBlockingQueue<Entry> entries = new LinkedBlockingQueue<>();
 
     //class cannot be instantiated
     private Logger() {}
 
-    //add an Entry to the Queue
+    /**
+     * Log a message to standard out or standard error stream
+     *
+     * @param type The type of log entry, use ERROR or LOG from Logger class
+     * @param message What message will be recorded for the log entry
+     */
     public static void log(int type, String message) {
         //make sure Logger is running
         startLogger();
@@ -70,8 +75,8 @@ public class Logger {
 
     //Runnable for logging thread
     private static class EntryLogger implements Runnable {
+        @SuppressWarnings("InfiniteLoopStatement")
         @Override
-        @SuppressWarnings("all")
         public void run() {
             //make sure logger stops on shutdown
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
