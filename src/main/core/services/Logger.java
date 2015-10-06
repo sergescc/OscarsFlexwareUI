@@ -14,7 +14,6 @@ public class Logger {
     //Constants
     public static final int ERROR = -1;
     public static final int LOG = 0;
-    public static final int END = -2;
 
     private static class Entry {
         //Log data
@@ -39,10 +38,6 @@ public class Logger {
             }
             str += message;
             return str;
-        }
-
-        public boolean isEnd() {
-            return type == Logger.END;
         }
 
         public PrintStream stream() {
@@ -76,33 +71,47 @@ public class Logger {
     //Runnable for logging thread
     private static class EntryLogger implements Runnable {
         @Override
+        @SuppressWarnings("all")
         public void run() {
             //make sure logger stops on shutdown
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    Logger.log(Logger.END, "");
+                    Logger.interrupt();
                 }
             }));
 
             Entry entry;
-            //continuously take entries from queue until an end entry is reached
+            //continuously take entries from queue until interrupted during shutdown
             try {
-                while (!(entry = entries.take()).isEnd()) {
+                while (true) {
+                    entry = entries.take();
                     entry.stream().println(entry);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+
+            //finish logging entries
+            while ((entry = entries.poll()) != null) {
+                entry.stream().println(entry);
+            }
         }
     }
 
+    private static Thread entryLoggerThread;
     //starts logger if it's not running, can only be called by class methods
     private static void startLogger() {
         if (!running) {
-            Thread entryLoggerThread = new Thread(new EntryLogger());
+            entryLoggerThread = new Thread(new EntryLogger());
             running = true;
             entryLoggerThread.start();
+        }
+    }
+
+    private static void interrupt() {
+        if (running) {
+            entryLoggerThread.interrupt();
         }
     }
 }
