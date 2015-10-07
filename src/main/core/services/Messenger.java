@@ -1,104 +1,46 @@
 package main.core.services;
 
-
-import javax.annotation.Resource;
 import javax.jms.*;
-import java.io.Serializable;
 
 /**
- * The messenger class handles sending ad receiving messages from flexware
+ * The Messenger class handles sending and receiving messages using JMS
  *
  * @author Grant Moyer
- * @since 2015-10-06
+ * @since 2015-10-07
  */
-abstract public class Messenger implements MessageListener {
-    @Resource(lookup = "jms/ConnectionFactory")
-    private static ConnectionFactory connectionFactory;
+public class Messenger {
+    private Connection connection;
+    private Session session;
 
-    @Resource(lookup = "jms/UIQueue")
-    private static Queue uiQueue;
+    protected MessageProducer producer;
+    protected MessageConsumer consumer;
 
-    @Resource(lookup = "jms/FlexQueue")
-    private static Queue flexQueue;
+    private MessageListener listener;
 
-    protected static Connection connection = null;
-    protected static Session session = null;
-    protected static MessageProducer producer = null;
-    protected static MessageConsumer consumer = null;
-
-    private static boolean initialized = false;
-
-    private static void initialize() {
-        if (!initialized) {
-            initialized = true;
-
-            if (connection == null) {
-                try {
-                    //create connection
-                    connection = connectionFactory.createConnection();
-
-                    //make sure connection closes
-                    Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                Messenger.connection.close();
-                            } catch (JMSException e) {
-                                Logger.log(Logger.ERROR, "Exception caught while closing connection");
-                                Logger.log(Logger.ERROR, "Exception: " + e);
-                            }
-                        }
-                    }));
-
-                    if (session == null) {
-                        try {
-                            session = connection.createSession(true, 0);
-
-                            if (producer == null) {
-                                try {
-                                    producer = session.createProducer(flexQueue);
-                                } catch (JMSException e) {
-                                    Logger.log(Logger.ERROR, "Exception caught while creating message producer");
-                                    Logger.log(Logger.ERROR, "Exception: " + e);
-                                }
-                            }
-
-                            if (consumer == null) {
-                                try {
-                                    consumer = session.createConsumer(uiQueue);
-                                } catch (JMSException e) {
-                                    Logger.log(Logger.ERROR, "Exception caught while creating message consumer");
-                                    Logger.log(Logger.ERROR, "Exception: " + e);
-                                }
-                            }
-                        } catch (JMSException e) {
-                            Logger.log(Logger.ERROR, "Exception caught while creating session");
-                            Logger.log(Logger.ERROR, "Exception: " + e);
-                            initialized = false;
-                        }
-                    }
-                } catch (JMSException e) {
-                    Logger.log(Logger.ERROR, "Exception caught while creating connection");
-                    Logger.log(Logger.ERROR, "Exception: " + e);
-                    initialized = false;
-                }
-            }
-        }
-    }
-
-    private Messenger() {}
-
-    static void send(Serializable obj) {
-        //lazily initialize Messenger
-        initialize();
+    /**
+     * Initializes the JMS Session, MessageProducer, MessageConsumer, and MessageListener of the Messenger class
+     *
+     * @param connection The JMS Connection to use
+     * @param local The local JMS Destination
+     * @param remote The remote JMS Destination
+     * @param listener the MessageListener to use when a message arrives
+     */
+    protected Messenger(Connection connection,
+                        Destination local,
+                        Destination remote,
+                        MessageListener listener)
+    {
+        this.connection = connection;
+        this.listener = listener;
 
         try {
-            ObjectMessage message = session.createObjectMessage(obj);
-            producer.send(message);
+            session = connection.createSession(true, 0);
+            producer = session.createProducer(remote);
+            consumer = session.createConsumer(local);
+            consumer.setMessageListener(listener);
         } catch (JMSException e) {
-            Logger.log(Logger.ERROR, "Exception caught while creating message to send");
+            Logger.log(Logger.ERROR, "Exception caught while setting up MessageProducer and MessageConsumer");
             Logger.log(Logger.ERROR, "Exception: " + e);
         }
-
     }
 }
